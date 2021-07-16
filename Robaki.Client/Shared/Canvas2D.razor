@@ -1,0 +1,57 @@
+﻿@using Robaki.Logic.MapGen
+@inject IJSRuntime JsRuntime
+
+
+<canvas id="canvas2D" width="150" height="150"></canvas>
+
+
+@code {
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ;
+
+        await Task.Delay(1000);
+
+        await JsRuntime.InvokeVoidAsync("draw");
+
+        await Task.Delay(1000);
+
+        SetCanvas("canvas2D", GenerateMap());
+    }
+
+    protected void SetCanvas(string canvasId, byte[,] data)
+    {
+        var canvasData = new byte[data.Length * 4];
+
+        int getColorIndicesForCoord(int x, int y, int width)
+        {
+            return y * width * 4 + x * 4;
+        }
+        var dataWidth = data.GetLength(0);
+        for (var x = 0; x < data.GetLength(0); x++)
+        {
+            for (var y = 0; y < data.GetLength(1); y++)
+            {
+                var index = getColorIndicesForCoord(x, y, dataWidth);
+                canvasData[index] = data[x, y];
+                canvasData[index+1] = data[x, y];
+                canvasData[index+2] = data[x, y];
+                canvasData[index + 3] = 255;
+            }
+        }
+
+        if (JsRuntime is IJSUnmarshalledRuntime webAssemblyJsRuntime)
+        {
+            webAssemblyJsRuntime.InvokeUnmarshalled<byte[], int>("setCanvas", canvasData);
+        }
+    }
+
+    byte[,] GenerateMap()
+    {
+        var generator = new MapGenerator();
+        return generator.GenerateMap(256, 256);
+    }
+
+}
